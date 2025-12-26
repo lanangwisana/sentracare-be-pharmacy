@@ -4,8 +4,8 @@ from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-SECRET_KEY = os.getenv("AUTH_SECRET_KEY", "change-this-secret-in-prod")
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv("AUTH_SECRET_KEY", "changeme")
+ALGORITHM = os.getenv("AUTH_ALGORITHM", "HS256")
 ISSUER = os.getenv("AUTH_ISSUER", "sentracare-auth")
 AUDIENCE = os.getenv("AUTH_AUDIENCE", "sentracare-services")
 
