@@ -11,7 +11,10 @@ from graphql_schema import schema
 from auth import SECRET_KEY, ALGORITHM, ISSUER, AUDIENCE
 from jose import jwt, JWTError
 
-app = FastAPI(title="Sentracare Pharmacy Service")
+app = FastAPI(
+    title="Sentracare Pharmacy Service",
+    description="API untuk management obat di SentraCare", 
+    version="1.0.0")
 
 # CORS
 app.add_middleware(
