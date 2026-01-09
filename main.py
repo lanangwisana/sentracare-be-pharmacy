@@ -17,13 +17,13 @@ app = FastAPI(
     version="1.0.0")
 
 # CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], 
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"], 
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 # DB init
 Base.metadata.create_all(bind=engine)
@@ -40,7 +40,11 @@ async def get_context(request: Request):
 
 # GraphQL
 graphql_app = GraphQLRouter(schema, context_getter=get_context)
-app.include_router(graphql_app, prefix="/graphql")
+app.include_router(
+    graphql_app, 
+    prefix="/pharmacy/graphql",
+    tags=["GraphQL API"],
+    )
 
 def get_db():
     db = SessionLocal()
@@ -50,7 +54,13 @@ def get_db():
         db.close()
 
 # -------- OBAT ENDPOINTS (PROTEKSI ROLE DIHAPUS AGAR BERHASIL) --------
-@app.post("/pharmacy/obat", response_model=ObatResponse, status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/pharmacy/obat", 
+    tags=["Obat Management"],
+    summary="Create Obat",
+    description="Create a new obat in the pharmacy system",
+    response_model=ObatResponse, 
+    status_code=status.HTTP_201_CREATED)
 def create_obat(data: ObatCreate, db: Session = Depends(get_db)):
     existing = db.query(Obat).filter(Obat.sku == data.sku).first()
     if existing: raise HTTPException(status_code=400, detail="Kode SKU sudah ada")
@@ -60,11 +70,21 @@ def create_obat(data: ObatCreate, db: Session = Depends(get_db)):
     db.refresh(new_obat)
     return new_obat
 
-@app.get("/pharmacy/obat", response_model=List[ObatResponse])
+@app.get(
+    "/pharmacy/obat", 
+    tags=["Obat Management"],
+    summary="Get Obat List",
+    description="Retrieve a list of all obat in the pharmacy system",
+    response_model=List[ObatResponse])
 def get_obat_list(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(Obat).offset(skip).limit(limit).all()
 
-@app.patch("/pharmacy/obat/{obat_id}/stock", response_model=ObatResponse)
+@app.patch(
+    "/pharmacy/obat/{obat_id}/stock", 
+    tags=["Obat Management"],
+    summary="Update Obat Stock",
+    description="Update the stock of a specific obat",
+    response_model=ObatResponse)
 def update_stock(obat_id: int, payload: dict, db: Session = Depends(get_db)):
     item = db.query(Obat).filter(Obat.id == obat_id).first()
     if not item: raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
@@ -73,7 +93,34 @@ def update_stock(obat_id: int, payload: dict, db: Session = Depends(get_db)):
     db.refresh(item)
     return item
 
-@app.delete("/pharmacy/obat/{obat_id}")
+@app.put(
+    "/pharmacy/obat/{obat_id}", 
+    tags=["Obat Management"],
+    summary="Update Obat",  
+    description="Update the details of a specific obat",
+    response_model=ObatResponse)
+def update_obat(obat_id: int, data: ObatCreate, db: Session = Depends(get_db)):
+    item = db.query(Obat).filter(Obat.id == obat_id).first()
+    if not item: 
+        raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
+    
+    # Update field
+    item.name = data.name # type: ignore
+    item.sku = data.sku # type: ignore
+    item.stock = data.stock # type: ignore
+    item.price = data.price # type: ignore
+    item.description = data.description # type: ignore
+    item.category = data.category # type: ignore
+
+    db.commit()
+    db.refresh(item)
+    return item
+
+@app.delete(
+    "/pharmacy/obat/{obat_id}",
+    tags=["Obat Management"],
+    summary="Delete Obat",
+    description="Delete a specific obat from the pharmacy system")
 def delete_obat(obat_id: int, db: Session = Depends(get_db)):
     item = db.query(Obat).filter(Obat.id == obat_id).first()
     if not item: raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
